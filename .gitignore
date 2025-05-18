@@ -1,0 +1,7 @@
+pfr
+target
+obj
+test/obj
+test/bin
+compile_commands.json
+.cache

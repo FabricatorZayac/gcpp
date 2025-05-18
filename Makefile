@@ -26,7 +26,7 @@ TESTINCLUDE  := $(TESTDIR)/include
 TESTOBJ      := $(TESTDIR)/obj
 TESTBIN      := $(TESTDIR)/bin
 
-TESTSRCS     := $(shell find $(TESTSRC) -name "*.c")
+TESTSRCS     := $(shell find $(TESTSRC) -name "*.cpp")
 TESTOBJS     := $(patsubst $(TESTSRC)/%.cpp, $(TESTOBJ)/%.o, $(TESTSRCS))
 TESTS        := $(patsubst $(TESTOBJ)/%.o, $(TESTBIN)/%, $(TESTOBJS))
 
@@ -61,7 +61,7 @@ debug: all $(TESTS)
 $(TESTBIN)/%: $(TESTOBJ)/%.o | $(TESTBIN)
 	$(CC) $(CFLAGS) $< $(LIB) -o $@ $(LDFLAGS)
 
-$(TESTOBJ)/%.o: $(TESTSRC)/%.c | $(TESTOBJ)
+$(TESTOBJ)/%.o: $(TESTSRC)/%.cpp | $(TESTOBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TESTOBJ) $(TESTBIN) $(OBJ) $(TARGET):
