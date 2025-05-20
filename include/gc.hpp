@@ -34,14 +34,16 @@ public:
         ~RootPtr() {
             ptr.refcount -= 1;
 
-            if (ptr.refcount == 0) {}
+            if (ptr.refcount == 0) {
+                // idk man 
+            }
         }
 
-        T &operator *() const {
+        T &operator *() {
             return *std::launder((T *)ptr.data);
         }
 
-        T *operator->() const {
+        T *operator->() {
             return std::launder((T *)ptr.data);
         }
     private:
@@ -66,12 +68,6 @@ public:
 
     template<typename T>
     auto create() -> RootPtr<T> {
-        roots.push_back({
-            .refcount = 1,
-            .data = allocate<T>(),
-        });
-
-        return RootPtr<T>(roots.back(), *this);
         return bind(allocate<T>());
     }
 private:

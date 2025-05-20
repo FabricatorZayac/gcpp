@@ -1,8 +1,10 @@
 #include <bitset>
+#include <cassert>
 #include <iostream>
 #include <ostream>
 #include <string>
 
+#include "boost/pfr/core.hpp"
 #include "boost/pfr/io.hpp"
 #include "gc.hpp"
 
@@ -11,6 +13,9 @@ struct RGB {
     int g;
     int b;
 };
+bool operator==(const RGB &self, const RGB &other) {
+    return boost::pfr::structure_tie(self) == boost::pfr::structure_tie(other);
+}
 
 struct ColoredText {
     RGB *color;
@@ -18,8 +23,6 @@ struct ColoredText {
 };
 
 int main() {
-    std::cout << "Hello World" << std::endl;
-
     GC gc;
 
     auto text = gc.create<ColoredText>();
@@ -35,4 +38,9 @@ int main() {
     *text->color = { 0xFF, 0x53, 0xAB };
 
     std::cout << boost::pfr::io(*text->color) << std::endl;
+
+    auto color = gc.bind(text->color);
+    std::cout << boost::pfr::io(*color) << std::endl;
+
+    assert(*color == *text->color);
 }
