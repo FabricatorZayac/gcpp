@@ -1,10 +1,8 @@
-#include <bitset>
 #include <cassert>
 #include <iostream>
 #include <ostream>
 #include <string>
 
-#include "boost/pfr/core.hpp"
 #include "boost/pfr/io.hpp"
 #include "gc.hpp"
 
@@ -13,9 +11,9 @@ struct RGB {
     int g;
     int b;
 };
-bool operator==(const RGB &self, const RGB &other) {
-    return boost::pfr::structure_tie(self) == boost::pfr::structure_tie(other);
-}
+// bool operator==(const RGB &self, const RGB &other) {
+//     return boost::pfr::structure_tie(self) == boost::pfr::structure_tie(other);
+// }
 
 struct ColoredText {
     RGB *color;
@@ -26,9 +24,16 @@ int main() {
     GC gc;
 
     auto text = gc.create<ColoredText>();
+    text->text = "Test";
 
-    std::cout << typeid(*text).name() << std::endl
-              << typeid(text).name() << std::endl;
+    {
+        auto shmext = gc.create<ColoredText>();
+    }
+
+    gc();
+
+    // std::cout << typeid(*text).name() << std::endl
+    //           << typeid(text).name() << std::endl;
 
     // std::cout << *((std::bitset<64> *)(&text->color) - 1) << std::endl;
 
@@ -42,5 +47,5 @@ int main() {
     auto color = gc.bind(text->color);
     std::cout << boost::pfr::io(*color) << std::endl;
 
-    assert(*color == *text->color);
+    // gc();
 }
