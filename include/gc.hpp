@@ -15,10 +15,22 @@ private:
 
     using PtrBits = std::bitset<WORD_SIZE * 8>;
 
-    template<typename T>
-    struct Allocation {
+    struct DynAlloc {
         PtrBits ptrbits;
+
+        virtual ~DynAlloc() = default;
+        virtual size_t size_of() const = 0;
+
+        // TODO: Maybe add iterator for child pointers
+    };
+
+    template<typename T>
+    struct Allocation : DynAlloc {
         T data;
+
+        size_t size_of() const override {
+            return sizeof(*this);
+        }
     };
     struct Root {
         size_t refcount;
@@ -83,32 +95,37 @@ public:
         std::vector<bool> markers(allocations.size(), false);
 
         for (const auto &root : roots) {
-            auto root_allocation = (uintptr_t)root.data - sizeof(PtrBits);
+            auto root_ptr = (uintptr_t)root.data;
 
             std::stack<uintptr_t> stack;
-            stack.push(root_allocation);
+            stack.push(root_ptr);
 
             while (!stack.empty()) {
-                auto allocation = stack.top();
+                auto ptr = stack.top();
                 stack.pop();
 
-                size_t idx = std::distance(allocations.begin(), std::find(
-                    allocations.begin(),
-                    allocations.end(),
-                    allocation
-                ));
-                // size_t idx = std::find(allocations.begin(), allocations.end(), allocation) - allocations.begin();
+                size_t idx = SIZE_MAX;
+                for (size_t i = 0; i < allocations.size(); i++) {
+                    auto allocation = allocations[i];
+                    if (markers[i]) continue;
+                    if ((uintptr_t)allocation < ptr
+                    && ptr < (uintptr_t)allocation + allocation->size_of()) {
+                        markers[i] = true;
+                        idx = i;
+                    }
+                }
 
+                // Fails if pointer doesn't point into GC memory
                 assert(idx < allocations.size());
                 
                 if (markers[idx]) continue;
                 markers[idx] = true;
 
-                const auto &ptrbits = *(PtrBits *)allocation;
+                const auto &ptrbits = allocations[idx]->ptrbits;
                 for (size_t i = 0; i < ptrbits.size(); i++) {
                     if (ptrbits[i]) {
-                        auto next = *(uintptr_t *)(allocation + sizeof(PtrBits) + WORD_SIZE * i);
-                        stack.push(next - sizeof(PtrBits));
+                        auto next = *(uintptr_t *)(ptr + WORD_SIZE * i);
+                        stack.push(next);
                     }
                 }
             }
@@ -118,11 +135,17 @@ public:
             if (!markers[i]) deallocate(i);
         }
     }
+
+    ~GC() {
+        for (size_t i = allocations.size(); i --> 0;) {
+            deallocate(i);
+        }
+    }
 private:
     // Creates an allocation and pushes it to the allocation list
     template<typename T>
     auto allocate() -> T * {
-        Allocation<T> *allocation = (Allocation<T> *)::operator new(sizeof(Allocation<T>));
+        Allocation<T> *allocation = new Allocation<T>();
         allocation->ptrbits = 0;
 
         if (alignof(T) == WORD_SIZE) {
@@ -140,14 +163,14 @@ private:
             });
         }
 
-        allocations.push_back((uintptr_t)allocation);
+        allocations.push_back(allocation);
 
         return &allocation->data;
     }
 
     // called during sweep phase
     void deallocate(size_t idx) {
-        ::operator delete((void *)(allocations[idx]));
+        delete allocations[idx];
         allocations.erase(allocations.begin() + idx);
     }
 
@@ -162,5 +185,5 @@ private:
     }
 
     std::vector<Root> roots;
-    std::vector<uintptr_t> allocations;
+    std::vector<DynAlloc *> allocations;
 };
