@@ -76,13 +76,13 @@ public:
 
     // Binds allocation to a root and pushes it to the root list
     template<typename T>
-    auto bind(T *ptr) -> RootPtr<T> {
-        roots.push_back({
+    auto bind(this GC &self, T *ptr) -> RootPtr<T> {
+        self.roots.push_back({
             .refcount = 1,
             .data = ptr,
         });
 
-        return RootPtr<T>(roots.size() - 1, *this);
+        return RootPtr<T>(self.roots.size() - 1, self);
     }
 
     template<typename T>
