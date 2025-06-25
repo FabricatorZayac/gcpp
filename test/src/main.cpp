@@ -1,7 +1,8 @@
 #include <cassert>
+#include <format>
 #include <iostream>
-#include <ostream>
 #include <string>
+#include <print>
 
 #include "boost/pfr/io.hpp"
 #include "gc.hpp"
@@ -11,41 +12,52 @@ struct RGB {
     int g;
     int b;
 };
-// bool operator==(const RGB &self, const RGB &other) {
-//     return boost::pfr::structure_tie(self) == boost::pfr::structure_tie(other);
-// }
 
 struct ColoredText {
     RGB *color;
     std::string text;
 };
 
+// template<>
+// struct std::formatter<RGB> : formatter<int> {
+//     auto format(const RGB &c, format_context &ctx) const {
+//         return std::format_to(ctx.out(), "RGB {{ r: {}, g: {}, b: {} }}", c.r, c.g, c.b);
+//     }
+// };
+
 int main() {
     GC gc;
 
-    auto text = gc.create<ColoredText>();
-    text->text = "Test";
-
     {
-        auto shmext = gc.create<ColoredText>();
+        auto text = gc.create<ColoredText>();
+        text->text = "Test";
+
+        {
+            auto shmext = gc.create<ColoredText>();
+        }
+
+        gc();
+
+        text->text = "Haiii";
+        std::println("{}", text->text);
+
+        *text->color = { 0xFF, 0x53, 0xAB };
+        
+        std::cout << boost::pfr::io(*text->color) << std::endl;
+
+        // idk what is causing the "mutation" when using println
+        // std::println("{}", *text->color);
+        // std::println("{}", *text->color);
+
+        auto color = gc.bind(text->color);
+        std::cout << boost::pfr::io(*color) << std::endl;
+
+        // std::cout << color->r << ", "
+        //           << color->g << ", "
+        //           << color->b
+        //           << std::endl;
+
+        // std::println("{}", *color);
     }
-
     gc();
-
-    // std::cout << typeid(*text).name() << std::endl
-    //           << typeid(text).name() << std::endl;
-
-    // std::cout << *((std::bitset<64> *)(&text->color) - 1) << std::endl;
-
-    text->text = "Haiii";
-    std::cout << text->text << std::endl;
-
-    *text->color = { 0xFF, 0x53, 0xAB };
-
-    std::cout << boost::pfr::io(*text->color) << std::endl;
-
-    auto color = gc.bind(text->color);
-    std::cout << boost::pfr::io(*color) << std::endl;
-
-    // gc();
 }
